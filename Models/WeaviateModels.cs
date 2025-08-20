@@ -1,27 +1,10 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
 
 namespace MiniRAG.Api.Weaviate.Models
-{
-	using System;
-
-	//public class WeaviateVectorSearchRequest
-	//{
-	//	[JsonPropertyName("vector")]
-	//	public float[] Vector { get; set; }
-
-	//	[JsonPropertyName("limit")]
-	//	public int Limit { get; set; }
-
-	//	[JsonPropertyName("class")]
-	//	public string ClassName { get; set; }
-
-	//	[JsonPropertyName("fields")]
-	//	public string[] Fields { get; set; }
-	//}
-
-	// Models/WeaviateModels.cs
-
+{	
 	public class WeaviateVectorSearchRequest
 	{
 		[JsonPropertyName("vector")]

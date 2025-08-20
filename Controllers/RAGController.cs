@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MiniRAG.Api.RAG.Models;
-using MiniRAG.Api.Services;
 using MiniRAG.Api.Services.Embedding;
 using MiniRAG.Api.Services.LLama;
 using MiniRAG.Api.Services.Weaviate;
@@ -16,10 +15,10 @@ namespace MiniRAG.Api.Controllers
 	public class RAGController : ControllerBase
 	{
 		private readonly EmbeddingService _embeddingService;
-		private readonly WeaviateService _weaviateService;
+		private readonly IWeaviateService _weaviateService;
 		private readonly LLMService _llmService;
 
-		public RAGController(EmbeddingService embeddingService, WeaviateService weaviateService, LLMService llmService)
+		public RAGController(EmbeddingService embeddingService, IWeaviateService weaviateService, LLMService llmService)
 		{
 			_embeddingService = embeddingService;
 			_weaviateService = weaviateService;
@@ -53,7 +52,7 @@ namespace MiniRAG.Api.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro no pipeline RAG" });
+				return StatusCode(500, new { error = ex.Message, details = "RAG pipeline error" });
 			}
 		}
 
@@ -111,7 +110,7 @@ namespace MiniRAG.Api.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro ao verificar status dos serviços" });
+				return StatusCode(500, new { error = ex.Message, details = "Services status check failed" });
 			}
 		}
 
@@ -127,22 +126,31 @@ namespace MiniRAG.Api.Controllers
 			{
 				if (!await _weaviateService.ClassExistsAsync())
 				{
-					return BadRequest(new { error = "Classe DocumentChunk não existe. Execute o comando para criar a classe primeiro." });
+					return BadRequest(new { error = " DocumentChunk class not found. Run \"Initialize\" method first" });
 				}
 
 				var testDocuments = new[]
-				{
-					"Camisetas personalizadas custam entre R$ 25,00 e R$ 45,00 dependendo da quantidade e material.",
-					"Canecas personalizadas têm prazo de entrega de 5 a 7 dias úteis e custam R$ 18,00 each.",
-					"Para pedidos acima de 50 unidades, oferecemos 15% de desconto em todos os produtos.",
-					"Trabalhamos com sublimação, serigrafia e bordado para personalização de produtos.",
-					"Atendemos pedidos a partir de 10 unidades. Pedidos menores têm taxa adicional de R$ 10,00.",
-					"Produtos em estoque têm entrega imediata. Produtos personalizados levam 3-7 dias.",
-					"Aceitamos pagamento por PIX, cartão de crédito e débito. Parcelamos em até 6x sem juros.",
-					"Fazemos orçamentos gratuitos. Entre em contato pelo WhatsApp (11) 99999-9999.",
-					"Especialistas em eventos corporativos, formaturas e festas de aniversário.",
-					"Garantia de 30 dias contra defeitos de fabricação em todos os produtos."
-				};
+										{
+											"Bloquinho personalizado tipo livro (10x7cm, 50 folhas) com mini-lápis, celofane, fita de cetim e tag de agradecimento custa R$6,49 por unidade.",
+											"Bloquinho personalizado com wire-o branco (10x7cm, 35 folhas) e mini-lápis, celofane, fita e tag de agradecimento custa R$9,35 por unidade.",
+											"Mini caneca personalizada de 15ml custa R$7,65 cada.",
+											"Caneca de café personalizada de 50ml custa R$13,20 cada.",
+											"Imagem de Nossa Senhora (10cm) personalizada no manto e frase na base custa R$34,90 por unidade.",
+											"Aparador de joias oval (10x7cm) personalizado na frente custa R$23,20; frente e verso custa R$27,50.",
+											"Aparador de joias redondo ondulado 8cm custa R$15,75 somente frente, ou R$19,90 frente e verso.",
+											"Porta joias 6cm personalizado somente na tampa custa R$17,98; versões com filete ouro/prata ou personalização extra têm acréscimos.",
+											"Porta joias 8cm personalizado somente na tampa custa R$28,76; opções adicionais incluem filete e personalização lateral ou fundo.",
+											"Garrafinha de porcelana personalizada custa R$16,90 frente ou R$21,20 frente e verso.",
+											"Vaso Manilha (11,5cm) personalizado completo custa R$38,98; detalhes em ouro ou prata custam +R$18,00.",
+											"Vaso Funil (10cm) personalizado completo custa R$40,98; detalhes em ouro ou prata custam +R$18,00.",
+											"Vela em potinho de porcelana personalizada custa R$19,80 (frente), R$24,10 (frente e verso) ou apenas potinho por R$12,98.",
+											"Toalhinha personalizada custa R$7,98; com fita de cetim e cartão custa R$10,98; com cofrinho custa R$13,98.",
+											"Quebra-cabeça personalizado (21x15cm, 12 peças) com celofane, fita e tag custa R$8,90; com latinha personalizada custa R$14,90.",
+											"Cofrinho personalizado (tampa branca) custa R$9,98.",
+											"Tubolata personalizada com laço custa R$13,00.",
+											"Kit embalagem organza + fita + tag custa R$3,90; celofane + fita + tag custa R$2,90."
+										};
+
 
 				var addedCount = 0;
 				var errors = new List<string>();
@@ -160,18 +168,18 @@ namespace MiniRAG.Api.Controllers
 						}
 						else
 						{
-							errors.Add($"Documento {index} não retornou ID válido");
+							errors.Add($"Document {index} retuned an invalid ID");
 						}
 					}
 					catch (Exception ex)
 					{
-						errors.Add($"Erro no documento {index}: {ex.Message}");
+						errors.Add($"Document error: {index}: {ex.Message}");
 					}
 				}
 
 				var result = new
 				{
-					message = $"Processo de seed concluído",
+					message = $"Seeding process done.",
 					success = new
 					{
 						added = addedCount,
@@ -184,7 +192,7 @@ namespace MiniRAG.Api.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro ao adicionar documentos de teste" });
+				return StatusCode(500, new { error = ex.Message, details = "Failed adding testing documents" });
 			}
 		}
 
@@ -198,14 +206,14 @@ namespace MiniRAG.Api.Controllers
 			{
 				if (!await _weaviateService.ClassExistsAsync())
 				{
-					return BadRequest(new { error = "Classe DocumentChunk não existe. Não há dados para limpar." });
+					return BadRequest(new { error = "DocumentChunk class doesn't exist. Nothing to clear." });
 				}
 
 				var countBefore = await _weaviateService.GetDocumentCountAsync();
 
 				if (countBefore == 0)
 				{
-					return Ok(new { message = "Base de dados já está vazia.", documentsRemoved = 0 });
+					return Ok(new { message = "Database already empty.", documentsRemoved = 0 });
 				}
 
 				var removedCount = await _weaviateService.ClearAllDocumentsAsync();
@@ -213,7 +221,7 @@ namespace MiniRAG.Api.Controllers
 
 				return Ok(new
 				{
-					message = "Dados limpos com sucesso",
+					message = "Dadabase cleared",
 					documentsRemoved = removedCount,
 					before = countBefore,
 					after = countAfter,
@@ -222,7 +230,7 @@ namespace MiniRAG.Api.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro ao limpar dados" });
+				return StatusCode(500, new { error = ex.Message, details = "Fail clearing database" });
 			}
 		}
 
@@ -236,21 +244,21 @@ namespace MiniRAG.Api.Controllers
 			{
 				if (!await _weaviateService.ClassExistsAsync())
 				{
-					return BadRequest(new { error = "Classe DocumentChunk não existe." });
+					return BadRequest(new { error = "DocumentChunk class doesn't exist" });
 				}
 
 				var removedCount = await _weaviateService.ClearDocumentsBySourcePrefixAsync("test_");
 
 				return Ok(new
 				{
-					message = removedCount > 0 ? "Dados de teste removidos com sucesso" : "Nenhum dado de teste encontrado",
+					message = removedCount > 0 ? "Demo data removed successfully" : "No test data found",
 					documentsRemoved = removedCount,
 					timestamp = DateTime.UtcNow
 				});
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro ao limpar dados de teste" });
+				return StatusCode(500, new { error = ex.Message, details = "Failed to clear test data" });
 			}
 		}
 
@@ -266,14 +274,14 @@ namespace MiniRAG.Api.Controllers
 
 				return Ok(new
 				{
-					message = "Schema recriado com sucesso",
+					message = "Schema recreated successfully",
 					details = result,
 					timestamp = DateTime.UtcNow
 				});
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro ao recriar schema" });
+				return StatusCode(500, new { error = ex.Message, details = "Schema recriation failed" });
 			}
 		}
 
@@ -287,7 +295,7 @@ namespace MiniRAG.Api.Controllers
 			{
 				if (!await _weaviateService.ClassExistsAsync())
 				{
-					return Ok(new { message = "Classe não existe", documentCount = 0 });
+					return Ok(new { message = "Class doesn't exist", documentCount = 0 });
 				}
 
 				var totalDocuments = await _weaviateService.GetDocumentCountAsync();
@@ -304,7 +312,7 @@ namespace MiniRAG.Api.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro ao obter estatísticas" });
+				return StatusCode(500, new { error = ex.Message, details = "Fail to obtain status" });
 			}
 		}
 
@@ -322,7 +330,7 @@ namespace MiniRAG.Api.Controllers
 			{
 				if (await _llmService.IsModelAvailableAsync())
 				{
-					return Ok(new { message = "Modelo já está disponível!" });
+					return Ok(new { message = "LLM model already available!" });
 				}
 
 				var result = await _llmService.PullModelAsync();
@@ -330,7 +338,7 @@ namespace MiniRAG.Api.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro ao baixar modelo" });
+				return StatusCode(500, new { error = ex.Message, details = "Failed to download LLM model" });
 			}
 		}
 
@@ -351,16 +359,16 @@ namespace MiniRAG.Api.Controllers
 					if (!await _weaviateService.ClassExistsAsync())
 					{
 						await _weaviateService.CreateClassAsync();
-						results.Add("Classe DocumentChunk criada no Weaviate");
+						results.Add("DocumentChunk class created on Weaviate");
 					}
 					else
 					{
-						results.Add("Classe DocumentChunk já existe no Weaviate");
+						results.Add("DocumentChunk class already exists on Weaviate");
 					}
 				}
 				catch (Exception ex)
 				{
-					errors.Add($"Erro ao criar classe Weaviate: {ex.Message}");
+					errors.Add($"Fail to create class on Weaviate: {ex.Message}");
 				}
 
 				// 2. Verificar modelo LLM
@@ -369,31 +377,31 @@ namespace MiniRAG.Api.Controllers
 					if (!await _llmService.IsModelAvailableAsync())
 					{
 						var pullResult = await _llmService.PullModelAsync();
-						results.Add($"Modelo LLM baixado: {pullResult}");
+						results.Add($"LLM model downloaded: {pullResult}");
 					}
 					else
 					{
-						results.Add("Modelo LLM já disponível");
+						results.Add("LLM model already available");
 					}
 				}
 				catch (Exception ex)
 				{
-					errors.Add($"Erro ao verificar/baixar modelo LLM: {ex.Message}");
+					errors.Add($"Fail to check/download LLM model: {ex.Message}");
 				}
 
 				var response = new
 				{
-					message = errors.Any() ? "Inicialização parcial" : "Sistema inicializado com sucesso",
+					message = errors.Count > 0 ? "Partial initialization" : "System successfully initiated",
 					success = results,
-					errors = errors.Any() ? errors : null,
+					errors = errors.Count > 0 ? errors : null,
 					timestamp = DateTime.UtcNow
 				};
 
-				return errors.Any() ? StatusCode(207, response) : Ok(response); // 207 = Multi-Status
+				return errors.Count > 0 ? StatusCode(207, response) : Ok(response); // 207 = Multi-Status
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, new { error = ex.Message, details = "Erro na inicialização do sistema" });
+				return StatusCode(500, new { error = ex.Message, details = "Failed starting service" });
 			}
 		}
 

@@ -37,7 +37,7 @@ namespace MiniRAG.Api.Services.Embedding
 				throw new InvalidOperationException("Embeddings API returned no vectors.");
 
 			// Ensure float32 array
-			return doc.Embeddings[0].Select(x => (float)x).ToArray();
+			return [.. doc.Embeddings[0].Select(x => (float)x)];
 		}
 
 		private sealed class EmbedResponse
