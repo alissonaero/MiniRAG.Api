@@ -26,7 +26,7 @@ namespace MiniRAG.Api.Controllers
 		}
 
 		/// <summary>
-		/// Pipeline RAG completo - Pergunta + Resposta gerada com contexto
+		/// Full Pipeline RAG   - Question + Generated answer under the given context
 		/// </summary>
 		[HttpPost("ask")]
 		public async Task<IActionResult> Ask([FromBody] RAGRequest request)
@@ -57,7 +57,7 @@ namespace MiniRAG.Api.Controllers
 		}
 
 		/// <summary>
-		/// Busca apenas documentos similares (sem geração de resposta)
+		/// Search for similar documents (no answer generation)
 		/// </summary>
 		[HttpPost("search")]
 		public async Task<IActionResult> Search([FromBody] SearchRequest request)
@@ -117,7 +117,7 @@ namespace MiniRAG.Api.Controllers
 		#region Data Management
 
 		/// <summary>
-		/// Adiciona documentos de teste para debugging
+		/// Add some docs for testing and debugging porposes
 		/// </summary>
 		[HttpPost("seed")]
 		public async Task<IActionResult> SeedTestData()

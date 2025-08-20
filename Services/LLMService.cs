@@ -21,8 +21,8 @@ namespace MiniRAG.Api.Services.LLama
 			_http = http;
 			var baseUrl = config["LLM:Url"] ?? "http://localhost:11434";
 			_http.BaseAddress = new Uri(baseUrl);
-			_http.Timeout = TimeSpan.FromMinutes(5); // LLM pode demorar
-			_modelName = config["LLM:ModelName"] ?? "llama3.2:3b"; // Modelo leve para começar
+			_http.Timeout = TimeSpan.FromMinutes(5); // LLM may take some time
+			_modelName = config["LLM:ModelName"] ?? "llama3.2:3b"; // light model just for inital testing
 		}
 
 		public async Task<string> GenerateResponseAsync(string question, List<Document> relevantDocuments, CancellationToken ct = default)
@@ -40,8 +40,8 @@ namespace MiniRAG.Api.Services.LLama
 				stream = false,
 				options = new
 				{
-					temperature = 0.7, // Criatividade moderada
-					max_tokens = 500,   // Limite de tokens na resposta
+					temperature = 0.7, // moderate creativity
+					max_tokens = 500,   
 					top_p = 0.9
 				}
 			};
@@ -52,15 +52,15 @@ namespace MiniRAG.Api.Services.LLama
 				resp.EnsureSuccessStatusCode();
 
 				var result = await resp.Content.ReadFromJsonAsync<OllamaResponse>(cancellationToken: ct);
-				return result?.Response ?? "Desculpe, não consegui gerar uma resposta no momento.";
+				return result?.Response ?? "Desculpe, não consegui gerar uma resposta no momento."; //Portuguese answers since it's for a Brazilian company
 			}
 			catch (HttpRequestException ex)
 			{
-				throw new InvalidOperationException($"Erro ao comunicar com o LLM: {ex.Message}", ex);
+				throw new InvalidOperationException($"Fail to to comunicate with the LLM: {ex.Message}", ex);
 			}
 			catch (TaskCanceledException)
 			{
-				throw new TimeoutException("Timeout na geração da resposta pelo LLM.");
+				throw new TimeoutException("LLM answer generation timeout");
 			}
 		}
 
@@ -87,7 +87,7 @@ namespace MiniRAG.Api.Services.LLama
 			using var resp = await _http.PostAsJsonAsync("/api/pull", payload, ct);
 			resp.EnsureSuccessStatusCode();
 
-			return $"Modelo {_modelName} baixado com sucesso!";
+			return $"{_modelName} Model downloaded successfully";
 		}
 
 		private string BuildContext(List<Document> documents)
@@ -98,7 +98,7 @@ namespace MiniRAG.Api.Services.LLama
 			var sb = new StringBuilder();
 			sb.AppendLine("=== INFORMAÇÕES DA EMPRESA ===");
 
-			for (int i = 0; i < Math.Min(documents.Count, 5); i++) // Máximo 5 documentos
+			for (int i = 0; i < Math.Min(documents.Count, 5); i++) // Max 5 docs
 			{
 				var doc = documents[i];
 				if (!string.IsNullOrWhiteSpace(doc.Texto))
