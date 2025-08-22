@@ -32,13 +32,12 @@ namespace MiniRAG.Api.Controllers
 		{
 			try
 			{
-				// 1. Gerar embedding da pergunta
+				//Get the question embedding
 				var embedding = await _embeddingService.GenerateAsync(request.Question, "query");
 
-				// 2. Buscar documentos similares
 				var documents = await _weaviateService.SearchDocsBySimilarity(embedding, request.TopK);
 
-				// 3. Gerar resposta usando LLM com contexto
+				//Get the answer from the LLM model in the given the context
 				var response = await _llmService.GenerateResponseAsync(request.Question, documents);
 
 				return Ok(new RAGResponse
@@ -81,7 +80,6 @@ namespace MiniRAG.Api.Controllers
 				var weaviateClassExists = await _weaviateService.ClassExistsAsync();
 				var llmAvailable = await _llmService.IsModelAvailableAsync();
 
-				// Contar documentos se a classe existir
 				var documentCount = weaviateClassExists ?
 					await _weaviateService.GetDocumentCountAsync() : 0;
 
