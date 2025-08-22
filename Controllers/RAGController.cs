@@ -26,7 +26,7 @@ namespace MiniRAG.Api.Controllers
 		}
 
 		/// <summary>
-		/// Full Pipeline RAG   - Question + Generated answer under the given context
+		/// Full Pipeline RAG - Question + Generated answer under the given context
 		/// </summary>
 		[HttpPost("ask")]
 		public async Task<IActionResult> Ask([FromBody] RAGRequest request)

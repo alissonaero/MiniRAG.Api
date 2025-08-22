@@ -19,24 +19,23 @@ namespace MiniRAG.Api.Services.LLama
 		public LLMService(HttpClient http, IConfiguration config)
 		{
 			_http = http;
-			var baseUrl = config["LLM:Url"] ?? "http://localhost:11434";
+			var baseUrl = config["LLM:Url"] ;
 			_http.BaseAddress = new Uri(baseUrl);
-			_http.Timeout = TimeSpan.FromMinutes(5); // LLM may take some time
-			_modelName = config["LLM:ModelName"] ?? "llama3.2:3b"; // light model just for inital testing
+			_http.Timeout = TimeSpan.FromMinutes(5); // The LLM may take time to respond, especially during the first execution.
+			_modelName = config["LLM:ModelName"]; // Let's use a light model just for a inital testing and evaluate how it performs.
 		}
 
 		public async Task<string> GenerateResponseAsync(string question, List<Document> relevantDocuments, CancellationToken ct = default)
 		{
-			// Constrói o contexto com os documentos relevantes
 			var context = BuildContext(relevantDocuments);
 
-			// Prompt personalizado para atendimento de vendas
+			// Contextualized prompt    
 			var prompt = BuildPrompt(question, context);
 
 			var payload = new
 			{
 				model = _modelName,
-				prompt = prompt,
+				prompt,
 				stream = false,
 				options = new
 				{
@@ -92,7 +91,7 @@ namespace MiniRAG.Api.Services.LLama
 
 		private string BuildContext(List<Document> documents)
 		{
-			if (!documents.Any())
+			if (documents.Count == 0)
 				return "Nenhuma informação específica encontrada na base de conhecimento.";
 
 			var sb = new StringBuilder();
@@ -112,7 +111,7 @@ namespace MiniRAG.Api.Services.LLama
 			return sb.ToString();
 		}
 
-		private string BuildPrompt(string question, string context)
+		private static string BuildPrompt(string question, string context)
 		{
 			return $@"Você é um assistente de vendas especializado em produtos personalizados. Sua função é ajudar clientes com informações sobre preços, prazos e orçamentos.
 

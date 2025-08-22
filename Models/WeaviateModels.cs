@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-
 namespace MiniRAG.Api.Weaviate.Models
-{	
+{
 	public class WeaviateVectorSearchRequest
 	{
 		[JsonPropertyName("vector")]
-		public float[] Vector { get; set; } = Array.Empty<float>();
+		public float[] Vector { get; set; } = [];
 
 		[JsonPropertyName("limit")]
 		public int Limit { get; set; } = 10;
@@ -17,16 +16,96 @@ namespace MiniRAG.Api.Weaviate.Models
 		public string ClassName { get; set; } = string.Empty;
 
 		[JsonPropertyName("fields")]
-		public string[] Fields { get; set; } = Array.Empty<string>();
+		public string[] Fields { get; set; } = [];
 
 		[JsonPropertyName("certainty")]
 		public float? Certainty { get; set; }
 	}
 
+	//GraphQL responses deserialization models
+	public class WeaviateGraphQLResponse<T>
+	{
+		[JsonPropertyName("data")]
+		public T? Data { get; set; }
+
+		[JsonPropertyName("errors")]
+		public WeaviateGraphQLError[]? Errors { get; set; }
+	}
+
+	public class WeaviateGraphQLError
+	{
+		[JsonPropertyName("message")]
+		public string Message { get; set; } = string.Empty;
+
+		[JsonPropertyName("path")]
+		public string[]? Path { get; set; }
+	}
+
+	public class WeaviateGetData
+	{
+		[JsonPropertyName("Get")]
+		public Dictionary<string, WeaviateDocumentResult[]> Get { get; set; } = new();
+	}
+
+	public class WeaviateAggregateData
+	{
+		[JsonPropertyName("Aggregate")]
+		public Dictionary<string, WeaviateAggregateResult[]> Aggregate { get; set; } = new();
+	}
+
+	public class WeaviateDocumentResult
+	{
+		[JsonPropertyName("text")]
+		public string? Text { get; set; }
+
+		[JsonPropertyName("source")]
+		public string? Source { get; set; }
+
+		[JsonPropertyName("_additional")]
+		public WeaviateAdditional? Additional { get; set; }
+	}
+
+	public class WeaviateAdditional
+	{
+		[JsonPropertyName("id")]
+		public string Id { get; set; } = string.Empty;
+
+		[JsonPropertyName("distance")]
+		public float? Distance { get; set; }
+
+		[JsonPropertyName("certainty")]
+		public float? Certainty { get; set; }
+	}
+
+	public class WeaviateAggregateResult
+	{
+		[JsonPropertyName("meta")]
+		public WeaviateMeta? Meta { get; set; }
+	}
+
+	public class WeaviateMeta
+	{
+		[JsonPropertyName("count")]
+		public int Count { get; set; }
+	}
+
+	public class WeaviateAddDocumentResponse
+	{
+		[JsonPropertyName("id")]
+		public string Id { get; set; } = string.Empty;
+
+		[JsonPropertyName("class")]
+		public string? Class { get; set; }
+
+		[JsonPropertyName("properties")]
+		public Dictionary<string, object>? Properties { get; set; }
+	}
+
+	// Modelos existentes mantidos
 	public class WeaviateSearchResponse
 	{
 		[JsonPropertyName("results")]
-		public WeaviateSearchResult[] Results { get; set; } = Array.Empty<WeaviateSearchResult>();
+		public WeaviateSearchResult[] Results { get; set; } = [];
 	}
 
 	public class WeaviateSearchResult
@@ -59,7 +138,7 @@ namespace MiniRAG.Api.Weaviate.Models
 		public string Vectorizer { get; set; } = "none";
 
 		[JsonPropertyName("properties")]
-		public WeaviateProperty[] Properties { get; set; } = Array.Empty<WeaviateProperty>();
+		public WeaviateProperty[] Properties { get; set; } = [];
 	}
 
 	public class WeaviateProperty
@@ -122,7 +201,7 @@ namespace MiniRAG.Api.Weaviate.Models
 	public class WeaviateObjectsResponse
 	{
 		[JsonPropertyName("objects")]
-		public WeaviateObject[] Objects { get; set; } = Array.Empty<WeaviateObject>();
+		public WeaviateObject[] Objects { get; set; } = [];
 
 		[JsonPropertyName("totalResults")]
 		public int TotalResults { get; set; }
@@ -139,5 +218,4 @@ namespace MiniRAG.Api.Weaviate.Models
 		[JsonPropertyName("class")]
 		public string Class { get; set; } = string.Empty;
 	}
-
 }

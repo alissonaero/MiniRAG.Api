@@ -5,7 +5,6 @@ using MiniRAG.Api.Weaviate.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -68,80 +67,34 @@ namespace MiniRAG.Api.Services.Weaviate
 			};
 
 			var result = await _client.AddDocumentAsync(document, ct);
-			return result?.TryGetProperty("id", out var id) == true ? id.GetString() ?? string.Empty : string.Empty;
+			return result?.Id ?? string.Empty;
 		}
 
 		public async Task<List<Document>> SearchDocsBySimilarity(float[] embedding, int topK = 10, CancellationToken ct = default)
 		{
-			var json = await _client.SearchByVectorAsync(embedding, topK, ct);
+			var results = await _client.SearchByVectorAsync(embedding, topK, ct);
 			var documents = new List<Document>();
 
-			if (json is not JsonElement root)
-				return documents;
-
-			// Verificar se há erros GraphQL
-			if (root.TryGetProperty("errors", out var errors))
+			foreach (var item in results)
 			{
-				var errorMsg = errors.EnumerateArray().FirstOrDefault().GetProperty("message").GetString();
-				throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
-			}
-
-			// Parse da resposta GraphQL
-			if (!root.TryGetProperty("data", out var data) ||
-				!data.TryGetProperty("Get", out var getObj) ||
-				!getObj.TryGetProperty(_className, out var results) ||
-				results.ValueKind != JsonValueKind.Array)
-			{
-				return documents;
-			}
-
-			foreach (var item in results.EnumerateArray())
-			{
-				var doc = new Document
+				documents.Add(new Document
 				{
-					Id = item.TryGetProperty("_additional", out var additional) && additional.TryGetProperty("id", out var idProp)
-						? idProp.GetString() ?? string.Empty
-						: string.Empty,
-
-					Texto = item.TryGetProperty("text", out var textProp) ? textProp.GetString() : null,
-					Source = item.TryGetProperty("source", out var sourceProp) ? sourceProp.GetString() : null,
+					Id = item.Additional?.Id ?? string.Empty,
+					Texto = item.Text,
+					Source = item.Source,
 					Embedding = embedding
-				};
-
-				documents.Add(doc);
+				});
 			}
 
 			Console.WriteLine($"Found {documents.Count} documents");
 			return documents;
 		}
 
-		// ATUALIZADO: Usar GraphQL Aggregate para contar
 		public async Task<int> GetDocumentCountAsync(CancellationToken ct = default)
 		{
 			try
 			{
-				var json = await _client.CountDocumentsAsync(ct);
-
-				if (json is not JsonElement root)
-					return 0;
-
-				// Parse da resposta do Aggregate
-				if (root.TryGetProperty("data", out var data) &&
-					data.TryGetProperty("Aggregate", out var aggregateObj) &&
-					aggregateObj.TryGetProperty(_className, out var classArray) &&
-					classArray.ValueKind == JsonValueKind.Array)
-				{
-					var firstItem = classArray.EnumerateArray().FirstOrDefault();
-					if (firstItem.TryGetProperty("meta", out var meta) &&
-						meta.TryGetProperty("count", out var countProp))
-					{
-						return countProp.GetInt32();
-					}
-				}
-
-				// Fallback para o método REST se GraphQL falhar
-				var result = await _client.GetAllObjectsAsync(ct);
-				return result?.TotalResults ?? result?.Objects?.Length ?? 0;
+				return await _client.CountDocumentsAsync(ct);
 			}
 			catch
 			{
@@ -186,7 +139,7 @@ namespace MiniRAG.Api.Services.Weaviate
 					Class = _className,
 					Where = new WeaviateWhereFilter
 					{
-						Path = new[] { "source" },
+						Path = ["source"],
 						Operator = "Like",
 						ValueText = $"{sourcePrefix}*"
 					}
@@ -205,34 +158,11 @@ namespace MiniRAG.Api.Services.Weaviate
 			return 0;
 		}
 
-		// ATUALIZADO: Usar GraphQL Aggregate para contar por filtro
 		public async Task<int> CountDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct = default)
 		{
 			try
 			{
-				var json = await _client.CountDocumentsBySourcePrefixAsync(sourcePrefix, ct);
-
-				if (json is not JsonElement root)
-					return 0;
-
-				// Parse da resposta do Aggregate
-				if (root.TryGetProperty("data", out var data) &&
-					data.TryGetProperty("Aggregate", out var aggregateObj) &&
-					aggregateObj.TryGetProperty(_className, out var classArray) &&
-					classArray.ValueKind == JsonValueKind.Array)
-				{
-					var firstItem = classArray.EnumerateArray().FirstOrDefault();
-					if (firstItem.TryGetProperty("meta", out var meta) &&
-						meta.TryGetProperty("count", out var countProp))
-					{
-						return countProp.GetInt32();
-					}
-				}
-
-				// Fallback para o método REST se GraphQL falhar
-				var encodedFilter = WeaviateHelpers.BuildWeaviateFilter("source", "Like", $"{sourcePrefix}*");
-				var result = await _client.GetObjectsAsync(encodedFilter, ct);
-				return result?.Objects?.Length ?? 0;
+				return await _client.CountDocumentsBySourcePrefixAsync(sourcePrefix, ct);
 			}
 			catch
 			{
@@ -247,11 +177,10 @@ namespace MiniRAG.Api.Services.Weaviate
 		{
 			var messages = new List<string>();
 			var existsBefore = await ClassExistsAsync(ct);
-			var countBefore = 0;
 
 			if (existsBefore)
 			{
-				countBefore = await GetDocumentCountAsync(ct);
+				int countBefore = await GetDocumentCountAsync(ct);
 				messages.Add($"Previous existing class with {countBefore} documents");
 				await _client.DeleteClassAsync(ct);
 				messages.Add("Previous class removed");
@@ -269,5 +198,3 @@ namespace MiniRAG.Api.Services.Weaviate
 		}
 	}
 }
-
-///TODO: Adicionar ao controle de versão. | Criar dados mais adequados a realidade e testar

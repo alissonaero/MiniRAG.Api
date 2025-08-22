@@ -4,7 +4,6 @@ using System;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -49,14 +48,14 @@ public class WeaviateClient
 		resp.EnsureSuccessStatusCode();
 	}
 
-	public async Task<JsonElement?> AddDocumentAsync(object document, CancellationToken ct)
+	public async Task<WeaviateAddDocumentResponse?> AddDocumentAsync(object document, CancellationToken ct)
 	{
 		var resp = await _http.PostAsJsonAsync(_objectsEndpoint, document, ct);
 		resp.EnsureSuccessStatusCode();
-		return await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+		return await resp.Content.ReadFromJsonAsync<WeaviateAddDocumentResponse>(ct);
 	}
- 
-	public async Task<JsonElement?> SearchByVectorAsync(float[] embedding, int topK, CancellationToken ct)
+
+	public async Task<WeaviateDocumentResult[]> SearchByVectorAsync(float[] embedding, int topK, CancellationToken ct)
 	{
 		var query = $@"
 		{{
@@ -83,10 +82,25 @@ public class WeaviateClient
 		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
 		resp.EnsureSuccessStatusCode();
 
-		return await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateGetData>>(ct);
+
+		// Verificar se há erros GraphQL
+		if (response?.Errors?.Length > 0)
+		{
+			var errorMsg = response.Errors[0].Message;
+			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
+		}
+
+		// Retornar os resultados ou array vazio se não encontrar
+		if (response?.Data?.Get?.TryGetValue(_className, out var results) == true)
+		{
+			return results;
+		}
+
+		return [];
 	}
 
-	public async Task<JsonElement?> GetAllDocumentsAsync(CancellationToken ct)
+	public async Task<WeaviateDocumentResult[]> GetAllDocumentsAsync(CancellationToken ct)
 	{
 		var query = $@"
 		{{
@@ -106,11 +120,25 @@ public class WeaviateClient
 		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
 		resp.EnsureSuccessStatusCode();
 
-		return await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateGetData>>(ct);
+
+		// Verificar se há erros GraphQL
+		if (response?.Errors?.Length > 0)
+		{
+			var errorMsg = response.Errors[0].Message;
+			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
+		}
+
+		// Retornar os resultados ou array vazio se não encontrar
+		if (response?.Data?.Get?.TryGetValue(_className, out var results) == true)
+		{
+			return results;
+		}
+
+		return [];
 	}
 
-	// NOVO: Contar documentos usando Aggregate
-	public async Task<JsonElement?> CountDocumentsAsync(CancellationToken ct)
+	public async Task<int> CountDocumentsAsync(CancellationToken ct)
 	{
 		var query = $@"
 		{{
@@ -128,11 +156,27 @@ public class WeaviateClient
 		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
 		resp.EnsureSuccessStatusCode();
 
-		return await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateAggregateData>>(ct);
+
+		// Verificar se há erros GraphQL
+		if (response?.Errors?.Length > 0)
+		{
+			var errorMsg = response.Errors[0].Message;
+			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
+		}
+
+		// Retornar o count ou 0 se não encontrar
+		if (response?.Data?.Aggregate?.TryGetValue(_className, out var results) == true &&
+			results.Length > 0 &&
+			results[0].Meta != null)
+		{
+			return results[0].Meta.Count;
+		}
+
+		return 0;
 	}
 
-	///TODO: Implement 
-	public async Task<JsonElement?> CountDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct)
+	public async Task<int> CountDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct)
 	{
 		var query = $@"
 		{{
@@ -156,10 +200,27 @@ public class WeaviateClient
 		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
 		resp.EnsureSuccessStatusCode();
 
-		return await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateAggregateData>>(ct);
+
+		// Verificar se há erros GraphQL
+		if (response?.Errors?.Length > 0)
+		{
+			var errorMsg = response.Errors[0].Message;
+			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
+		}
+
+		// Retornar o count ou 0 se não encontrar
+		if (response?.Data?.Aggregate?.TryGetValue(_className, out var results) == true &&
+			results.Length > 0 &&
+			results[0].Meta != null)
+		{
+			return results[0].Meta.Count;
+		}
+
+		return 0;
 	}
 
-	// Mantém os métodos REST para operações que não têm equivalente GraphQL
+	 
 	public async Task<WeaviateObjectsResponse?> GetObjectsAsync(string filter, CancellationToken ct)
 	{
 		var url = $"{_objectsEndpoint}?class={_className}&where={filter}&limit={_defaultLimit}";
