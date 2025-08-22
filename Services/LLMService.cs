@@ -32,6 +32,7 @@ namespace MiniRAG.Api.Services.LLama
 			// Contextualized prompt    
 			var prompt = BuildPrompt(question, context);
 
+			/// TODO: Implement dynamic max_tokens using TokenizerServiceUrl + LLM config (ContextSize, PromptOverhead, MaxResponseTokensCap, MinResponseTokens); fallback to heuristic if tokenizer fails.
 			var payload = new
 			{
 				model = _modelName,
