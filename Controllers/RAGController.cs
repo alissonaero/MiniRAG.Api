@@ -25,9 +25,8 @@ namespace MiniRAG.Api.Controllers
 			_llmService = llmService;
 		}
 
-		/// <summary>
-		/// Full Pipeline RAG - Question + Generated answer under the given context
-		/// </summary>
+		 
+		//Full Pipeline | Question + Generated answer under the given context
 		[HttpPost("ask")]
 		public async Task<IActionResult> Ask([FromBody] RAGRequest request)
 		{
@@ -56,9 +55,7 @@ namespace MiniRAG.Api.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Search for similar documents (no answer generation)
-		/// </summary>
+		// Searchs for similar documents (no answer generation)
 		[HttpPost("search")]
 		public async Task<IActionResult> Search([FromBody] SearchRequest request)
 		{
@@ -74,9 +71,8 @@ namespace MiniRAG.Api.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Verifica status de todos os serviços
-		/// </summary>
+
+		// Checks all of the api services status
 		[HttpGet("health")]
 		public async Task<IActionResult> Health()
 		{
@@ -116,9 +112,8 @@ namespace MiniRAG.Api.Controllers
 
 		#region Data Management
 
-		/// <summary>
-		/// Add some docs for testing and debugging porposes
-		/// </summary>
+		//TODO: Create alternative methods for adding documents (files) in the next steps  
+		//Adds some docs for testing and debugging porposes 
 		[HttpPost("seed")]
 		public async Task<IActionResult> SeedTestData()
 		{
@@ -131,25 +126,134 @@ namespace MiniRAG.Api.Controllers
 
 				var testDocuments = new[]
 										{
-											"Bloquinho personalizado tipo livro (10x7cm, 50 folhas) com mini-lápis, celofane, fita de cetim e tag de agradecimento custa R$6,49 por unidade.",
-											"Bloquinho personalizado com wire-o branco (10x7cm, 35 folhas) e mini-lápis, celofane, fita e tag de agradecimento custa R$9,35 por unidade.",
-											"Mini caneca personalizada de 15ml custa R$7,65 cada.",
-											"Caneca de café personalizada de 50ml custa R$13,20 cada.",
-											"Imagem de Nossa Senhora (10cm) personalizada no manto e frase na base custa R$34,90 por unidade.",
-											"Aparador de joias oval (10x7cm) personalizado na frente custa R$23,20; frente e verso custa R$27,50.",
-											"Aparador de joias redondo ondulado 8cm custa R$15,75 somente frente, ou R$19,90 frente e verso.",
-											"Porta joias 6cm personalizado somente na tampa custa R$17,98; versões com filete ouro/prata ou personalização extra têm acréscimos.",
-											"Porta joias 8cm personalizado somente na tampa custa R$28,76; opções adicionais incluem filete e personalização lateral ou fundo.",
-											"Garrafinha de porcelana personalizada custa R$16,90 frente ou R$21,20 frente e verso.",
-											"Vaso Manilha (11,5cm) personalizado completo custa R$38,98; detalhes em ouro ou prata custam +R$18,00.",
-											"Vaso Funil (10cm) personalizado completo custa R$40,98; detalhes em ouro ou prata custam +R$18,00.",
-											"Vela em potinho de porcelana personalizada custa R$19,80 (frente), R$24,10 (frente e verso) ou apenas potinho por R$12,98.",
-											"Toalhinha personalizada custa R$7,98; com fita de cetim e cartão custa R$10,98; com cofrinho custa R$13,98.",
-											"Quebra-cabeça personalizado (21x15cm, 12 peças) com celofane, fita e tag custa R$8,90; com latinha personalizada custa R$14,90.",
-											"Cofrinho personalizado (tampa branca) custa R$9,98.",
-											"Tubolata personalizada com laço custa R$13,00.",
-											"Kit embalagem organza + fita + tag custa R$3,90; celofane + fita + tag custa R$2,90."
-										};
+										// Página 1
+										@"Cria Mineira
+									Lembrancinhas e Presentes Personalizados
+									Tabela de Preços
+									Informações importantes
+									- Pode haver variação de cor para o produto final.
+									- Podem ocorrer mínimas variações de tamanho e montagem.
+									- Leia as políticas de troca, devoluções e ressarcimentos.
+
+									Valores válidos para um pedido mínimo de 20 unidades de CADA MODELO.
+									Para quantidades menores, favor consultar!",
+
+										@"Bloquinhos de Anotação
+									Bloquinho Personalizado Encadernação tipo 'Livro' (sem arame)
+									- Capa em papel triplex 300g
+									- Tamanho: 10x7 cm, miolo 50 folhas
+									Com mini-lápis, celofane, fita de cetim e tag: R$6,49
+
+									Bloquinho Personalizado (wire-o branco)
+									- Capa em papel triplex 300g
+									- Tamanho: 10x7 cm, miolo 35 folhas
+									Com mini-lápis, celofane, fita de cetim e tag: R$9,35",
+
+										// Página 2
+										@"Porcelanas Personalizadas (Caneca, Porta-Joia, Garrafinha, Vela)
+									Limite de cores: sem limite (exceto ouro ou prata).
+									Política de avarias e variações de tamanho descritas no documento.
+
+									Mini Caneca 15ml: R$7,65
+									Caneca de Café 50ml: R$13,20
+									Imagem de Nossa Senhora (10cm):
+									- Personalizada no manto + nome: R$34,90
+									- Detalhes em ouro: +R$27,00
+									- Nomes diferentes: +R$5,00/unidade",
+
+										// Página 3 e 4
+										@"Aparador de Jóias Oval (10x7cm)
+									- Frente: R$23,20
+									- Frente e verso: R$27,50
+									- Filete Ouro/Prata: +R$18,00
+									- Nomes diferentes: +R$5,00
+
+									Aparador de Jóias Redondo Borda Lisa (8cm)
+									- Frente: R$16,45
+									- Frente e verso: R$20,75
+									- Filete Ouro/Prata: +R$15,00
+									- Nomes diferentes: +R$5,00",
+
+										// Página 5 a 7
+										@"Porta Joias 6cm
+									- Tampa: R$17,98
+									- Filete Ouro/Prata: +R$15,00
+									- Lateral: +R$4,30
+									- Fundo: +R$4,30
+									- Caixinha acrílico: +R$6,80
+									- Nomes diferentes: +R$5,00
+
+									Porta Joias 8cm
+									- Tampa: R$28,76
+									- Filete Ouro/Prata: +R$19,90
+									- Lateral: +R$6,00
+									- Fundo: +R$6,00
+									- Nomes diferentes: +R$5,00",
+
+										@"Garrafinha Porcelana (6,5x5cm)
+									- Frente: R$16,90
+									- Frente e verso: R$21,20
+									- Nomes diferentes: +R$5,00
+
+									Vasos
+									Manilha (11,5x6cm): R$38,98
+									Funil (10x6,5cm): R$40,98
+									+ Filete Ouro/Prata: +R$18,00
+									+ Nomes diferentes: +R$5,00
+
+									Vela no potinho porcelana (5x7cm)
+									- Com vela frente: R$19,80
+									- Com vela frente e verso: R$24,10
+									- Só potinho frente: R$12,98
+									- Só potinho frente e verso: R$17,28
+									- Nomes diferentes: +R$5,00",
+
+										// Página 8
+										@"Toalhinha Personalizada (23x39cm, algodão)
+									- Simples: R$7,98
+									- + Fita de cetim e cartão: R$10,98
+									- + Cofrinho: R$13,98
+
+									Cofrinho personalizado (tampa branca): R$9,98
+
+									Jogo da Memória (15 pares)
+									- Papel cartão 250g
+									- Papelão cinza rígido
+									Preço sob consulta
+
+									Quebra-cabeça personalizado (21x15cm, 12 peças)
+									- Celofane + fita + tag: R$8,90
+									- Latinha personalizada: R$14,90",
+
+										// Página 9
+										@"Adicionais
+									- Tubolata personalizado + laço: R$13,00
+									- Kit Organza + fita + tag: R$3,90
+									- Kit Celofane + fita + tag: R$2,90
+									- Caixinha acrílico porta-joias: R$6,90
+									- Caixinha acetato (aparador): R$13,00
+									- Caixinha papel cartão (caneca 50ml/porta-joias): R$5,90
+									- Mini Terço: R$3,00",
+
+										// Página 10 e 11
+										@"Políticas da Loja
+									- Pagamentos: Mercado Pago, PIX
+									- Produção sob encomenda, prazo variável
+									- Arte enviada em até 5 dias úteis após pagamento
+									- 5 alterações inclusas, extras são cobradas
+									- Após aprovação da arte não é possível cancelamento sem custo
+									- Frete por conta do comprador (PAC, Sedex ou transportadora)
+									- Trocas e devoluções apenas em caso de defeito
+									- Reclamações de transporte só em até 7 dias do recebimento
+
+									Contato
+									WhatsApp: (37) 9-9988-5619
+									Instagram: @criamineira
+									Facebook: /CriaMineira
+									Site: http://criamineira.com.br
+									Data de Publicação: 20/01/2025"
+									};
+
 
 
 				var addedCount = 0;
@@ -196,9 +300,8 @@ namespace MiniRAG.Api.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Remove todos os documentos da base de dados
-		/// </summary>
+
+		//Clears all documents in the Weaviate database
 		[HttpDelete("clear")]
 		public async Task<IActionResult> ClearAllData()
 		{
@@ -234,9 +337,7 @@ namespace MiniRAG.Api.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Remove apenas documentos de teste (com source começando com "test_")
-		/// </summary>
+		//Removes test documents only (source must starts with "test_")
 		[HttpDelete("clear/test-data")]
 		public async Task<IActionResult> ClearTestData()
 		{
@@ -262,9 +363,8 @@ namespace MiniRAG.Api.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Recria a classe do Weaviate (remove tudo e recria estrutura)
-		/// </summary>
+
+		//resets the schema (and data) by deleting and recreating the DocumentChunk class
 		[HttpPost("recreate-schema")]
 		public async Task<IActionResult> RecreateSchema()
 		{
@@ -285,9 +385,8 @@ namespace MiniRAG.Api.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Retorna estatísticas da base de dados
-		/// </summary>
+	 
+		//Gets weaviate db stats
 		[HttpGet("stats")]
 		public async Task<IActionResult> GetStats()
 		{
@@ -320,9 +419,8 @@ namespace MiniRAG.Api.Controllers
 
 		#region Setup and Maintenance
 
-		/// <summary>
-		/// Força download do modelo LLM (primeira vez)
-		/// </summary>
+
+		//Forces the LLM model to be downloaded for the first time
 		[HttpPost("setup")]
 		public async Task<IActionResult> Setup()
 		{
@@ -342,9 +440,7 @@ namespace MiniRAG.Api.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Inicialização completa do sistema (schema + modelo)
-		/// </summary>
+		//API Init (schema + LLM model)
 		[HttpPost("initialize")]
 		public async Task<IActionResult> Initialize()
 		{
@@ -353,7 +449,7 @@ namespace MiniRAG.Api.Controllers
 				var results = new List<string>();
 				var errors = new List<string>();
 
-				// 1. Verificar/Criar classe no Weaviate
+				//check Weaviate class and create if not exists
 				try
 				{
 					if (!await _weaviateService.ClassExistsAsync())
@@ -371,7 +467,7 @@ namespace MiniRAG.Api.Controllers
 					errors.Add($"Fail to create class on Weaviate: {ex.Message}");
 				}
 
-				// 2. Verificar modelo LLM
+				//check the LLM model  and download if not available
 				try
 				{
 					if (!await _llmService.IsModelAvailableAsync())
@@ -407,9 +503,8 @@ namespace MiniRAG.Api.Controllers
 
 		#endregion
 
-		/// <summary>
-		/// Endpoint simples para teste
-		/// </summary>
+		 
+		//just for checking if the API is running 		 
 		[HttpGet("ping")]
 		public IActionResult Ping()
 		{

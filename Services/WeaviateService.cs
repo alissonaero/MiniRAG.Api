@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
+using MiniRAG.Api.Clients.Weaviate;
 using MiniRAG.Api.Core.Helpers;
+using MiniRAG.Api.Core.Helpers.Weaviate;
 using MiniRAG.Api.Models;
 using MiniRAG.Api.Weaviate.Models;
 using System;
@@ -21,6 +23,9 @@ namespace MiniRAG.Api.Services.Weaviate
 		Task<int> ClearDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct = default);
 		Task<int> CountDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct = default);
 		Task<string> RecreateClassAsync(CancellationToken ct = default);
+
+		// Novo método para queries customizadas
+		Task<List<Document>> SearchWithCustomQueryAsync(WeaviateQueryBuilder queryBuilder, CancellationToken ct = default);
 	}
 
 	public class WeaviateService : IWeaviateService
@@ -73,6 +78,17 @@ namespace MiniRAG.Api.Services.Weaviate
 		public async Task<List<Document>> SearchDocsBySimilarity(float[] embedding, int topK = 10, CancellationToken ct = default)
 		{
 			var results = await _client.SearchByVectorAsync(embedding, topK, ct);
+			return ConvertToDocuments(results, embedding);
+		}
+
+		public async Task<List<Document>> SearchWithCustomQueryAsync(WeaviateQueryBuilder queryBuilder, CancellationToken ct = default)
+		{
+			var results = await _client.SearchWithCustomQuery(queryBuilder, ct);
+			return ConvertToDocuments(results, null);
+		}
+
+		private List<Document> ConvertToDocuments(WeaviateDocumentResult[] results, float[]? embedding)
+		{
 			var documents = new List<Document>();
 
 			foreach (var item in results)
@@ -101,6 +117,21 @@ namespace MiniRAG.Api.Services.Weaviate
 				// Fallback para o método REST em caso de erro
 				var result = await _client.GetAllObjectsAsync(ct);
 				return result?.TotalResults ?? result?.Objects?.Length ?? 0;
+			}
+		}
+
+		public async Task<int> CountDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct = default)
+		{
+			try
+			{
+				return await _client.CountDocumentsBySourcePrefixAsync(sourcePrefix, ct);
+			}
+			catch
+			{
+				// Fallback para o método REST em caso de erro
+				var encodedFilter = WeaviateHelpers.BuildWeaviateFilter("source", "Like", $"{sourcePrefix}*");
+				var result = await _client.GetObjectsAsync(encodedFilter, ct);
+				return result?.Objects?.Length ?? 0;
 			}
 		}
 
@@ -156,21 +187,6 @@ namespace MiniRAG.Api.Services.Weaviate
 			}
 
 			return 0;
-		}
-
-		public async Task<int> CountDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct = default)
-		{
-			try
-			{
-				return await _client.CountDocumentsBySourcePrefixAsync(sourcePrefix, ct);
-			}
-			catch
-			{
-				// Fallback para o método REST em caso de erro
-				var encodedFilter = WeaviateHelpers.BuildWeaviateFilter("source", "Like", $"{sourcePrefix}*");
-				var result = await _client.GetObjectsAsync(encodedFilter, ct);
-				return result?.Objects?.Length ?? 0;
-			}
 		}
 
 		public async Task<string> RecreateClassAsync(CancellationToken ct = default)

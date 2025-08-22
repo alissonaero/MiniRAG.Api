@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using MiniRAG.Api.Clients.Weaviate;
 using MiniRAG.Api.Services.Embedding;
 using MiniRAG.Api.Services.LLama;
 using MiniRAG.Api.Services.Weaviate;

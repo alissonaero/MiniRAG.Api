@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace MiniRAG.Api.Weaviate.Models
@@ -22,8 +21,7 @@ namespace MiniRAG.Api.Weaviate.Models
 		public float? Certainty { get; set; }
 	}
 
-	//GraphQL responses deserialization models
-	public class WeaviateGraphQLResponse<T>
+ 	public class WeaviateGraphQLResponse<T>
 	{
 		[JsonPropertyName("data")]
 		public T? Data { get; set; }
@@ -95,10 +93,10 @@ namespace MiniRAG.Api.Weaviate.Models
 		public string Id { get; set; } = string.Empty;
 
 		[JsonPropertyName("class")]
-		public string? Class { get; set; }
+		public string Class { get; set; } = string.Empty;
 
 		[JsonPropertyName("properties")]
-		public Dictionary<string, object>? Properties { get; set; }
+		public Dictionary<string, object> Properties { get; set; } = new();
 	}
 
 	// Modelos existentes mantidos
@@ -147,7 +145,7 @@ namespace MiniRAG.Api.Weaviate.Models
 		public string Name { get; set; } = string.Empty;
 
 		[JsonPropertyName("dataType")]
-		public string[] DataType { get; set; } = Array.Empty<string>();
+		public string[] DataType { get; set; } = [];
 
 		[JsonPropertyName("description")]
 		public string Description { get; set; } = string.Empty;
@@ -156,7 +154,7 @@ namespace MiniRAG.Api.Weaviate.Models
 	public class WeaviateSchemaResponse
 	{
 		[JsonPropertyName("classes")]
-		public WeaviateClassInfo[] Classes { get; set; } = Array.Empty<WeaviateClassInfo>();
+		public WeaviateClassInfo[] Classes { get; set; } = [];
 	}
 
 	public class WeaviateClassInfo
@@ -165,7 +163,7 @@ namespace MiniRAG.Api.Weaviate.Models
 		public string Class { get; set; } = string.Empty;
 
 		[JsonPropertyName("description")]
-		public string? Description { get; set; }
+		public string Description { get; set; } = string.Empty;
 	}
 
 	public class WeaviateBatchDeleteRequest
@@ -189,13 +187,13 @@ namespace MiniRAG.Api.Weaviate.Models
 	public class WeaviateWhereFilter
 	{
 		[JsonPropertyName("path")]
-		public string[] Path { get; set; } = Array.Empty<string>();
+		public string[] Path { get; set; } = [];
 
 		[JsonPropertyName("operator")]
 		public string Operator { get; set; } = string.Empty;
 
 		[JsonPropertyName("valueText")]
-		public string? ValueText { get; set; }
+		public string ValueText { get; set; } = string.Empty;
 	}
 
 	public class WeaviateObjectsResponse
@@ -213,7 +211,7 @@ namespace MiniRAG.Api.Weaviate.Models
 		public string Id { get; set; } = string.Empty;
 
 		[JsonPropertyName("properties")]
-		public Dictionary<string, object>? Properties { get; set; }
+		public Dictionary<string, object> Properties { get; set; } = new();
 
 		[JsonPropertyName("class")]
 		public string Class { get; set; } = string.Empty;

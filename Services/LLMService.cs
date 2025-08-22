@@ -19,7 +19,7 @@ namespace MiniRAG.Api.Services.LLama
 		public LLMService(HttpClient http, IConfiguration config)
 		{
 			_http = http;
-			var baseUrl = config["LLM:Url"] ;
+			var baseUrl = config["LLM:Url"];
 			_http.BaseAddress = new Uri(baseUrl);
 			_http.Timeout = TimeSpan.FromMinutes(5); // The LLM may take time to respond, especially during the first execution.
 			_modelName = config["LLM:ModelName"]; // Let's use a light model just for a inital testing and evaluate how it performs.
@@ -40,7 +40,7 @@ namespace MiniRAG.Api.Services.LLama
 				options = new
 				{
 					temperature = 0.7, // moderate creativity
-					max_tokens = 500,   
+					max_tokens = 500,
 					top_p = 0.9
 				}
 			};
@@ -115,19 +115,19 @@ namespace MiniRAG.Api.Services.LLama
 		{
 			return $@"Você é um assistente de vendas especializado em produtos personalizados. Sua função é ajudar clientes com informações sobre preços, prazos e orçamentos.
 
-INSTRUÇÕES:
-- Seja cordial, prestativo e profissional
-- Use as informações do contexto abaixo para responder
-- Se não souber algo específico, seja honesto e sugira que o cliente entre em contato para mais detalhes
-- Foque em preços, prazos de entrega e especificações dos produtos
-- Mantenha as respostas concisas mas informativas
-- Use uma linguagem brasileira natural
+					INSTRUÇÕES:
+					- Seja cordial, prestativo e profissional
+					- Responda às perguntas dos clientes com base nas informações fornecidas
+					- Se não souber algo específico, seja honesto e sugira que o cliente entre em contato para mais detalhes
+					- Foque em preços, prazos de entrega e especificações dos produtos
+					- Mantenha as respostas concisas, mas informativas
+					- Use uma linguagem brasileira natural. Não seja formal nem prolixo demais e mantenha o profissionalismo
 
-{context}
+					{context}
 
-PERGUNTA DO CLIENTE: {question}
+					PERGUNTA DO CLIENTE: {question}
 
-RESPOSTA:";
+					RESPOSTA:";
 		}
 
 		private sealed class OllamaResponse

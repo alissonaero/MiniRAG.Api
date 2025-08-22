@@ -1,12 +1,13 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MiniRAG.Api.Weaviate.Models;
 using System;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
+
+namespace MiniRAG.Api.Clients.Weaviate;
 public class WeaviateClient
 {
 	private readonly HttpClient _http;
@@ -27,6 +28,25 @@ public class WeaviateClient
 		_batchEndpoint = config["Weaviate:Endpoints:Batch"];
 		_graphqlEndpoint = config["Weaviate:Endpoints:GraphQL"] ?? "/v1/graphql";
 		_defaultLimit = config["Weaviate:DefaultLimit"] ?? "1000";
+	}
+
+	//Generic method to execute any GraphQL query
+	private async Task<T> ExecuteGraphQLAsync<T>(string query, CancellationToken ct)
+	{
+		var payload = new { query };
+		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
+		resp.EnsureSuccessStatusCode();
+
+		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<T>>(ct);
+
+		//Checks for GraphQL errors
+		if (response?.Errors?.Length > 0)
+		{
+			var errorMsg = response.Errors[0].Message;
+			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
+		}
+
+		return response.Data;
 	}
 
 	public async Task<WeaviateSchemaResponse?> GetSchemaAsync(CancellationToken ct)
@@ -57,116 +77,37 @@ public class WeaviateClient
 
 	public async Task<WeaviateDocumentResult[]> SearchByVectorAsync(float[] embedding, int topK, CancellationToken ct)
 	{
-		var query = $@"
-		{{
-			Get {{
-				{_className}(
-					nearVector: {{
-						vector: [{string.Join(",", embedding.Select(f => f.ToString("G", System.Globalization.CultureInfo.InvariantCulture)))}]
-					}}
-					limit: {topK}
-				) {{
-					text
-					source
-					_additional {{
-						id
-						distance
-						certainty
-					}}
-				}}
-			}}
-		}}";
+		var query = WeaviateQueryBuilder.Create()
+			.SearchDocuments(_className)
+			.NearVector(embedding)
+			.Limit(topK)
+			.Build();
 
-		var payload = new { query = query.Replace("\n", "").Replace("\t", "") };
+		var data = await ExecuteGraphQLAsync<WeaviateGetData>(query, ct);
 
-		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
-		resp.EnsureSuccessStatusCode();
-
-		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateGetData>>(ct);
-
-		// Verificar se há erros GraphQL
-		if (response?.Errors?.Length > 0)
-		{
-			var errorMsg = response.Errors[0].Message;
-			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
-		}
-
-		// Retornar os resultados ou array vazio se não encontrar
-		if (response?.Data?.Get?.TryGetValue(_className, out var results) == true)
-		{
-			return results;
-		}
-
-		return [];
+		return data?.Get?.TryGetValue(_className, out var results) == true ? results : [];
 	}
 
 	public async Task<WeaviateDocumentResult[]> GetAllDocumentsAsync(CancellationToken ct)
 	{
-		var query = $@"
-		{{
-			Get {{
-				{_className}(limit: 10000) {{
-					text
-					source
-					_additional {{
-						id
-					}}
-				}}
-			}}
-		}}";
+		var query = WeaviateQueryBuilder.Create()
+			.GetAllDocuments(_className)
+			.Build();
 
-		var payload = new { query = query.Replace("\n", "").Replace("\t", "") };
+		var data = await ExecuteGraphQLAsync<WeaviateGetData>(query, ct);
 
-		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
-		resp.EnsureSuccessStatusCode();
-
-		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateGetData>>(ct);
-
-		// Verificar se há erros GraphQL
-		if (response?.Errors?.Length > 0)
-		{
-			var errorMsg = response.Errors[0].Message;
-			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
-		}
-
-		// Retornar os resultados ou array vazio se não encontrar
-		if (response?.Data?.Get?.TryGetValue(_className, out var results) == true)
-		{
-			return results;
-		}
-
-		return [];
+		return data?.Get?.TryGetValue(_className, out var results) == true ? results : [];
 	}
 
 	public async Task<int> CountDocumentsAsync(CancellationToken ct)
 	{
-		var query = $@"
-		{{
-			Aggregate {{
-				{_className} {{
-					meta {{
-						count
-					}}
-				}}
-			}}
-		}}";
+		var query = WeaviateQueryBuilder.Create()
+			.CountDocuments(_className)
+			.Build();
 
-		var payload = new { query = query.Replace("\n", "").Replace("\t", "") };
+		var data = await ExecuteGraphQLAsync<WeaviateAggregateData>(query, ct);
 
-		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
-		resp.EnsureSuccessStatusCode();
-
-		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateAggregateData>>(ct);
-
-		// Verificar se há erros GraphQL
-		if (response?.Errors?.Length > 0)
-		{
-			var errorMsg = response.Errors[0].Message;
-			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
-		}
-
-		// Retornar o count ou 0 se não encontrar
-		if (response?.Data?.Aggregate?.TryGetValue(_className, out var results) == true &&
+		if (data?.Aggregate?.TryGetValue(_className, out var results) == true &&
 			results.Length > 0 &&
 			results[0].Meta != null)
 		{
@@ -178,39 +119,14 @@ public class WeaviateClient
 
 	public async Task<int> CountDocumentsBySourcePrefixAsync(string sourcePrefix, CancellationToken ct)
 	{
-		var query = $@"
-		{{
-			Aggregate {{
-				{_className}(
-					where: {{
-						path: [""source""]
-						operator: Like
-						valueText: ""{sourcePrefix}*""
-					}}
-				) {{
-					meta {{
-						count
-					}}
-				}}
-			}}
-		}}";
+		var query = WeaviateQueryBuilder.Create()
+			.CountDocuments(_className)
+			.WhereLike("source", $"{sourcePrefix}*")
+			.Build();
 
-		var payload = new { query = query.Replace("\n", "").Replace("\t", "") };
+		var data = await ExecuteGraphQLAsync<WeaviateAggregateData>(query, ct);
 
-		var resp = await _http.PostAsJsonAsync(_graphqlEndpoint, payload, ct);
-		resp.EnsureSuccessStatusCode();
-
-		var response = await resp.Content.ReadFromJsonAsync<WeaviateGraphQLResponse<WeaviateAggregateData>>(ct);
-
-		// Verificar se há erros GraphQL
-		if (response?.Errors?.Length > 0)
-		{
-			var errorMsg = response.Errors[0].Message;
-			throw new InvalidOperationException($"Weaviate GraphQL Error: {errorMsg}");
-		}
-
-		// Retornar o count ou 0 se não encontrar
-		if (response?.Data?.Aggregate?.TryGetValue(_className, out var results) == true &&
+		if (data?.Aggregate?.TryGetValue(_className, out var results) == true &&
 			results.Length > 0 &&
 			results[0].Meta != null)
 		{
@@ -220,7 +136,15 @@ public class WeaviateClient
 		return 0;
 	}
 
-	 
+	public async Task<WeaviateDocumentResult[]> SearchWithCustomQuery(WeaviateQueryBuilder queryBuilder, CancellationToken ct)
+	{
+		var query = queryBuilder.Build();
+		var data = await ExecuteGraphQLAsync<WeaviateGetData>(query, ct);
+
+		return data?.Get?.TryGetValue(_className, out var results) == true ? results : [];
+	}
+
+	//Let's keep the REST methods for those operation where there's no equivalent GraphQL
 	public async Task<WeaviateObjectsResponse?> GetObjectsAsync(string filter, CancellationToken ct)
 	{
 		var url = $"{_objectsEndpoint}?class={_className}&where={filter}&limit={_defaultLimit}";

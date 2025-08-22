@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Web;
 
-namespace MiniRAG.Api.Core.Helpers
+namespace MiniRAG.Api.Core.Helpers.Weaviate
 {
 	public static class WeaviateHelpers
 	{
